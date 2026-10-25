@@ -1,0 +1,939 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insider Threat Detection — CERT r4.2 Analytics</title>
+<meta name="description" content="Academic dashboard for insider threat detection with Isolation Forest on the CERT r4.2 dataset.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main-canvas">Skip to main content</a>
+
+<div class="shell">
+
+  <!-- ============ LEFT NAVIGATION RAIL ============ -->
+  <aside class="rail">
+    <div class="rail-brand">
+      <span class="rail-brand-mark" aria-hidden="true">▚</span>
+      <span>
+        <strong>Insider Threat Detection</strong>
+        <small>CERT r4.2 · Isolation Forest</small>
+      </span>
+    </div>
+
+    <nav class="rail-nav" aria-label="Dashboard sections">
+      <p class="rail-label">Analysis</p>
+      <a href="#overview" class="rail-link is-active" data-section="overview">Overview</a>
+      <a href="#dataset" class="rail-link" data-section="dataset">Dataset explorer</a>
+      <a href="#cleaning" class="rail-link" data-section="cleaning">Data cleaning</a>
+      <a href="#eda" class="rail-link" data-section="eda">Exploratory data analysis</a>
+      <a href="#features" class="rail-link" data-section="features">Feature engineering</a>
+      <a href="#model" class="rail-link" data-section="model">Model explorer</a>
+      <a href="#evaluation" class="rail-link" data-section="evaluation">Evaluation &amp; confusion matrix</a>
+      <a href="#threshold" class="rail-link" data-section="threshold">Threshold analysis</a>
+      <a href="#limitations" class="rail-link" data-section="limitations">Limitations &amp; future work</a>
+
+      <p class="rail-label">Tools</p>
+      <a href="#import" class="rail-link" data-section="import">Data import</a>
+    </nav>
+
+    <div class="rail-foot">
+      <p class="rail-foot-title">Evidence Trace</p>
+      <p>Raw logs → cleaned data → daily features → Isolation Forest → anomaly scores → incident evaluation.</p>
+      <p class="rail-foot-note" id="rail-data-state">No files imported · notebook figures shown</p>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN CANVAS ============ -->
+  <main class="canvas" id="main-canvas">
+
+    <header class="topbar">
+      <p class="topbar-crumb">Academic project <span aria-hidden="true">/</span> <strong id="topbar-section-name">Overview</strong></p>
+      <div class="topbar-actions">
+        <span class="source-badge" id="source-badge" title="Where the numbers on this page come from">Source: saved notebook outputs</span>
+        <button type="button" class="btn btn-quiet" id="reset-data-btn">Reset imported data</button>
+      </div>
+    </header>
+
+    <!-- ================= A. OVERVIEW ================= -->
+    <section id="overview" class="panel-section is-visible" aria-labelledby="overview-title">
+      <div class="section-head">
+        <h1 id="overview-title" class="display-title">Insider Threat Detection</h1>
+        <p class="display-sub">Behavioural anomaly analysis using the CERT r4.2 dataset.</p>
+        <p class="lede">The system transforms user activity logs into daily behavioural features and uses Isolation Forest to identify unusual user-day observations. Detected anomalies are compared with known incident records to evaluate detection performance.</p>
+      </div>
+
+      <!-- Signature element: Evidence Trace -->
+      <h2 class="section-label">Evidence Trace — detection pipeline</h2>
+      <ol class="evidence-trace" aria-label="Detection pipeline from raw logs to evaluation">
+        <li class="trace-stage stage-data">
+          <span class="trace-num" aria-hidden="true">1</span>
+          <strong>Raw activity logs</strong>
+          <span class="trace-value">32,770,222 valid rows</span>
+          <span class="trace-note">logon · device · file · email · http</span>
+        </li>
+        <li class="trace-stage stage-data">
+          <span class="trace-num" aria-hidden="true">2</span>
+          <strong>Cleaned data</strong>
+          <span class="trace-value">invalid dates &amp; users dropped</span>
+          <span class="trace-note">duplicate check · date parsing</span>
+        </li>
+        <li class="trace-stage stage-data">
+          <span class="trace-num" aria-hidden="true">3</span>
+          <strong>Daily user features</strong>
+          <span class="trace-value">501,000 user-days · 12 features</span>
+          <span class="trace-note">zero-filled complete grid</span>
+        </li>
+        <li class="trace-stage stage-model">
+          <span class="trace-num" aria-hidden="true">4</span>
+          <strong>Isolation Forest</strong>
+          <span class="trace-value">200 trees · contamination 0.01</span>
+          <span class="trace-note">log1p transform · seed 42</span>
+        </li>
+        <li class="trace-stage stage-output">
+          <span class="trace-num" aria-hidden="true">5</span>
+          <strong>Anomaly scores</strong>
+          <span class="trace-value">5,010 user-days flagged</span>
+          <span class="trace-note">model output, not confirmed attacks</span>
+        </li>
+        <li class="trace-stage stage-output">
+          <span class="trace-num" aria-hidden="true">6</span>
+          <strong>Incident evaluation</strong>
+          <span class="trace-value">31 of 70 incidents detected</span>
+          <span class="trace-note">compared with verified labels</span>
+        </li>
+      </ol>
+      <p class="trace-legend"><span class="legend-swatch swatch-teal"></span> data stages <span class="legend-swatch swatch-rust"></span> model output and evaluation <span class="legend-divider-note">The dashed rule between stage 4 and 5 marks where model-generated values begin; everything before it is observed or prepared data.</span></p>
+
+      <h2 class="section-label">Latest reported figures</h2>
+      <div class="kpi-row">
+        <article class="kpi">
+          <p class="kpi-label">Distinct users</p>
+          <p class="kpi-value">1,000</p>
+          <p class="kpi-note">dataset overview</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi-label">User-day observations</p>
+          <p class="kpi-value">501,000</p>
+          <p class="kpi-note">complete daily grid</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi-label">Date coverage</p>
+          <p class="kpi-value kpi-value-sm">501 days</p>
+          <p class="kpi-note">2 Jan 2010 – 17 May 2011</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi-label">Known insider incidents</p>
+          <p class="kpi-value">70</p>
+          <p class="kpi-note">3 scenarios · r4.2 ground truth</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi-label">Users flagged by model</p>
+          <p class="kpi-value kpi-rust">171</p>
+          <p class="kpi-note">flagged at least one user-day</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi-label">User-level recall</p>
+          <p class="kpi-value kpi-rust">72.86%</p>
+          <p class="kpi-note">51 of 70 insider users flagged at least once</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi-label">Incidents detected</p>
+          <p class="kpi-value kpi-rust">31 of 70</p>
+          <p class="kpi-note">anomaly inside the incident window</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi-label">Incident-window recall</p>
+          <p class="kpi-value kpi-rust">44.29%</p>
+          <p class="kpi-note">detection during labelled windows</p>
+        </article>
+      </div>
+
+      <div class="callout">
+        <h3 class="callout-title">Two kinds of recall</h3>
+        <p><strong>User-level recall</strong> (72.86%) asks: was a known insider flagged on <em>any</em> day? <strong>Incident-window recall</strong> (44.29%) asks: was an anomaly detected <em>during the labelled incident window</em>? A user can be flagged at least once and still miss the actual incident period. These measure different things and are not interchangeable.</p>
+      </div>
+
+      <div class="callout callout-quiet">
+        <h3 class="callout-title">Result summary</h3>
+        <p>The baseline identifies a substantial proportion of known insider users, but detection varies across scenarios. Detecting a user at least once does not guarantee that the model detects the associated incident.</p>
+        <p class="provenance">Provenance: these are the latest reported evaluation figures, verified against the saved outputs of notebooks 01, 04, 06, 07 and 08. Import prediction and feature files to recompute any of them from source data.</p>
+      </div>
+    </section>
+
+    <!-- ================= B. DATASET EXPLORER ================= -->
+    <section id="dataset" class="panel-section" aria-labelledby="dataset-title" hidden>
+      <div class="section-head">
+        <h2 id="dataset-title" class="page-title">Dataset explorer</h2>
+        <p class="lede">CERT Insider Threat Dataset release r4.2: simulated corporate activity for 1,000 users over 501 dates, with a ground-truth file listing 70 known insider incidents across 3 scenarios.</p>
+      </div>
+
+      <h3 class="section-label">Known data sources</h3>
+      <div class="table-wrap">
+        <table id="sources-table">
+          <caption>Source files, sizes and columns (notebook 01 output)</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-sortable>File</th>
+              <th scope="col">Content</th>
+              <th scope="col" data-sortable>Size (MB)</th>
+              <th scope="col" data-sortable>Valid rows used</th>
+              <th scope="col">Columns</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">logon.csv</th><td>Logon / logoff activity</td><td class="mono">55.80</td><td class="mono">854,859</td><td class="mono cols">id, date, user, pc, activity</td></tr>
+            <tr><th scope="row">device.csv</th><td>Device connect / disconnect</td><td class="mono">27.64</td><td class="mono">405,380</td><td class="mono cols">id, date, user, pc, activity</td></tr>
+            <tr><th scope="row">file.csv</th><td>File access activity</td><td class="mono">184.11</td><td class="mono">445,581</td><td class="mono cols">id, date, user, pc, filename, content</td></tr>
+            <tr><th scope="row">email.csv</th><td>Email activity</td><td class="mono">1,299.00</td><td class="mono">2,629,979</td><td class="mono cols">id, date, user, pc, to, cc, bcc, from, size, attachments, content</td></tr>
+            <tr><th scope="row">http.csv</th><td>HTTP / web activity</td><td class="mono">13,862.86</td><td class="mono">28,434,423</td><td class="mono cols">id, date, user, pc, url, content</td></tr>
+            <tr><th scope="row">psychometric.csv</th><td>Personality attributes (OCEAN)</td><td class="mono">0.04</td><td class="mono">Not available</td><td class="mono cols">employee_name, user_id, O, C, E, A, N</td></tr>
+            <tr><th scope="row">insiders.csv</th><td>Ground-truth incident records</td><td class="mono">0.01</td><td class="mono">70 (r4.2 rows)</td><td class="mono cols">dataset, scenario, details, user, start, end</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figure-note">File sizes and first rows come from notebook 01. "Valid rows used" counts rows that survived date and user parsing during feature aggregation (notebook 04); it is not a claim about total file contents. Raw record counts for psychometric.csv are not available because that file was not aggregated in the notebooks.</p>
+
+      <h3 class="section-label">Incidents by scenario</h3>
+      <div class="chart-block">
+        <div class="chart-toolbar">
+          <div class="toggle-group" role="group" aria-label="Scenario chart display mode">
+            <button type="button" class="toggle-btn is-on" data-mode="count" data-target="scenario">Counts</button>
+            <button type="button" class="toggle-btn" data-mode="percent" data-target="scenario">Percent</button>
+          </div>
+        </div>
+        <div class="canvas-box"><canvas id="scenario-chart" height="220" aria-label="Bar chart of known incident counts by scenario: 30, 30 and 10"></canvas></div>
+        <p class="figure-note">Scenario 1: 30 incidents · Scenario 2: 30 incidents · Scenario 3: 10 incidents. Verified from the r4.2 rows of the ground-truth file (notebook 07 group-by output).</p>
+        <details class="table-details">
+          <summary>View data table</summary>
+          <div class="table-wrap">
+            <table>
+              <caption>Incident counts by scenario</caption>
+              <thead><tr><th scope="col">Scenario</th><th scope="col">Incidents</th><th scope="col">Share</th></tr></thead>
+              <tbody>
+                <tr><th scope="row">1</th><td class="mono">30</td><td class="mono">42.86%</td></tr>
+                <tr><th scope="row">2</th><td class="mono">30</td><td class="mono">42.86%</td></tr>
+                <tr><th scope="row">3</th><td class="mono">10</td><td class="mono">14.29%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+
+      <h3 class="section-label">Activity records by log type</h3>
+      <div class="chart-block">
+        <div class="chart-toolbar">
+          <div class="toggle-group" role="group" aria-label="Record chart scale">
+            <button type="button" class="toggle-btn is-on" data-mode="linear" data-target="records">Linear</button>
+            <button type="button" class="toggle-btn" data-mode="log" data-target="records">Log1p</button>
+          </div>
+        </div>
+        <div class="canvas-box"><canvas id="records-chart" height="240" aria-label="Bar chart comparing valid record counts by log type: http 28.4 million, email 2.6 million, logon 0.85 million, file 0.45 million, device 0.41 million"></canvas></div>
+        <p class="figure-note" id="records-note">HTTP activity dominates the raw record volume by more than an order of magnitude. The log1p option compresses the axis so smaller sources stay readable; it changes only the display, never the underlying values.</p>
+      </div>
+
+      <h3 class="section-label">Date coverage</h3>
+      <div class="chart-block">
+        <div class="canvas-box canvas-box-tight"><canvas id="coverage-chart" height="90" aria-label="Timeline bar showing 501 dates of coverage from 2 January 2010 to 17 May 2011"></canvas></div>
+        <p class="figure-note" id="coverage-note">501 distinct dates from 2 January 2010 to 17 May 2011. Every user appears on every date in the complete feature grid (1,000 users × 501 dates = 501,000 user-days).</p>
+      </div>
+
+      <h3 class="section-label">Raw events versus user-day observations</h3>
+      <div class="callout callout-quiet">
+        <p>Raw event records describe individual moments: one logon, one file open, one email. A <strong>user-day observation</strong> summarises everything one user did on one date into a single row of 12 feature values. The 32.77 million valid raw records above become 501,000 model rows. Most of those rows are zero-filled because the model requires a complete user × date grid: a zero means <em>no event was recorded</em> for that user on that day, which is not the same as proof that the person did nothing in the real world.</p>
+      </div>
+
+      <h3 class="section-label">Ground-truth incident register (r4.2)</h3>
+      <div class="chart-block">
+        <div class="chart-toolbar">
+          <label class="field-inline">Filter by scenario
+            <select id="dataset-scenario-filter" aria-label="Filter incident register by scenario">
+              <option value="all">All scenarios</option>
+              <option value="1">Scenario 1</option>
+              <option value="2">Scenario 2</option>
+              <option value="3">Scenario 3</option>
+            </select>
+          </label>
+          <span class="toolbar-note" id="register-count">70 incidents</span>
+        </div>
+        <div class="table-wrap table-scroll-limited">
+          <table id="register-table">
+            <caption>Known insider incidents for dataset r4.2, from the ground-truth file</caption>
+            <thead>
+              <tr>
+                <th scope="col" data-sortable>User</th>
+                <th scope="col" data-sortable>Scenario</th>
+                <th scope="col" data-sortable>Start</th>
+                <th scope="col" data-sortable>End</th>
+              </tr>
+            </thead>
+            <tbody id="register-body"></tbody>
+          </table>
+        </div>
+        <p class="figure-note">This register is real ground-truth data from <span class="mono">data/raw/answers/insiders.csv</span> (rows where dataset = 4.2). Importing a replacement ground-truth file on the Data import page replaces it.</p>
+      </div>
+    </section>
+
+    <!-- ================= C. DATA CLEANING ================= -->
+    <section id="cleaning" class="panel-section" aria-labelledby="cleaning-title" hidden>
+      <div class="section-head">
+        <h2 id="cleaning-title" class="page-title">Data cleaning</h2>
+        <p class="lede">Cleaning ran as an inspection pass on a 10,000-row logon sample (notebook 02), then as a defensive filter inside feature aggregation (notebook 04). The raw files were never modified.</p>
+      </div>
+
+      <h3 class="section-label">Cleaning workflow</h3>
+      <ol class="flow-strip" aria-label="Cleaning workflow steps">
+        <li><strong>Raw files</strong><span>read-only</span></li>
+        <li><strong>Inspection</strong><span>shape &amp; columns</span></li>
+        <li><strong>Missing-value checks</strong><span>per column</span></li>
+        <li><strong>Duplicate checks</strong><span>full-row comparison</span></li>
+        <li><strong>Date &amp; type validation</strong><span>parse or drop</span></li>
+        <li><strong>Cleaned data</strong><span>saved copy only</span></li>
+      </ol>
+
+      <h3 class="section-label">Cleaning summary</h3>
+      <div class="table-wrap">
+        <table id="cleaning-table">
+          <caption>Cleaning results per dataset (notebook 02 output; import an audit file to extend)</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-sortable>Dataset / file</th>
+              <th scope="col" data-sortable>Original rows</th>
+              <th scope="col" data-sortable>Missing values</th>
+              <th scope="col" data-sortable>Duplicate rows</th>
+              <th scope="col">Cleaning operation</th>
+              <th scope="col" data-sortable>Remaining rows</th>
+            </tr>
+          </thead>
+          <tbody id="cleaning-body">
+            <tr>
+              <th scope="row">logon.csv (10,000-row sample)</th>
+              <td class="mono">10,000</td><td class="mono">0</td><td class="mono">0</td>
+              <td>drop_duplicates · parse dates · drop rows with missing user</td>
+              <td class="mono">10,000</td>
+            </tr>
+            <tr>
+              <th scope="row">logon.csv (full file, aggregation pass)</th>
+              <td class="mono">Not available</td><td class="mono">Not available</td><td class="mono">Not available</td>
+              <td>drop rows with unparseable date or missing user during chunked read</td>
+              <td class="mono">854,859 valid rows</td>
+            </tr>
+            <tr>
+              <th scope="row">device.csv (aggregation pass)</th>
+              <td class="mono">Not available</td><td class="mono">Not available</td><td class="mono">Not available</td>
+              <td>drop rows with unparseable date or missing user</td>
+              <td class="mono">405,380 valid rows</td>
+            </tr>
+            <tr>
+              <th scope="row">file.csv (aggregation pass)</th>
+              <td class="mono">Not available</td><td class="mono">Not available</td><td class="mono">Not available</td>
+              <td>drop rows with unparseable date or missing user</td>
+              <td class="mono">445,581 valid rows</td>
+            </tr>
+            <tr>
+              <th scope="row">email.csv (aggregation pass)</th>
+              <td class="mono">Not available</td><td class="mono">Not available</td><td class="mono">Not available</td>
+              <td>drop rows with unparseable date or missing user; coerce size &amp; attachments to numbers</td>
+              <td class="mono">2,629,979 valid rows</td>
+            </tr>
+            <tr>
+              <th scope="row">http.csv (aggregation pass)</th>
+              <td class="mono">Not available</td><td class="mono">Not available</td><td class="mono">Not available</td>
+              <td>drop rows with unparseable date or missing user</td>
+              <td class="mono">28,434,423 valid rows</td>
+            </tr>
+            <tr>
+              <th scope="row">complete_daily_features.csv</th>
+              <td class="mono">330,452 observed rows</td><td class="mono">0 after fill</td><td class="mono">0 user-day keys</td>
+              <td>outer-merge per-source features · fill missing with 0 · expand to complete user × date grid</td>
+              <td class="mono">501,000 rows</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figure-note">"Not available" means the notebook did not record that number for the full file, not that the value is zero. Import a cleaning or audit summary CSV on the Data import page to add verified rows.</p>
+
+      <h3 class="section-label">Decisions, stated plainly</h3>
+      <ul class="plain-list">
+        <li>The missing-value and duplicate checks in notebook 02 were run on a <strong>10,000-row sample of logon.csv</strong>, which showed 0 missing values and 0 duplicate rows. This does not prove the full files are free of missing values or duplicates; the full-file check was not recorded.</li>
+        <li>During feature aggregation, rows with an unparseable date or a missing user identifier are dropped. The count of dropped rows is not recorded, only the count of valid rows kept.</li>
+        <li>Email size and attachment fields are coerced to numbers, with unparseable values replaced by 0.</li>
+        <li>The complete feature grid is <strong>zero-filled</strong>: every user has a row for every one of the 501 dates. A zero means no event of that type was recorded for that user on that day in the source logs. It does not prove the user had no real-world activity, and weekend or holiday zeros are indistinguishable from inactivity zeros.</li>
+        <li>Raw CSV files are never edited. Cleaned copies are written to the processed folder only.</li>
+      </ul>
+
+      <h3 class="section-label">Missing values and duplicates</h3>
+      <div class="chart-block">
+        <div id="cleaning-chart-empty" class="empty-state">
+          <p class="empty-title">Not available</p>
+          <p>Per-file missing-value and duplicate counts were only recorded for the 10,000-row logon sample (both zero). Import a cleaning or audit summary CSV to display comparison charts. <a href="#import">Go to data import</a></p>
+        </div>
+        <div id="cleaning-chart-wrap" class="is-hidden">
+          <div class="canvas-box"><canvas id="cleaning-chart" height="220" aria-label="Bar chart of missing values and duplicate rows per imported file"></canvas></div>
+          <p class="figure-note">Values shown come from the imported audit file.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= D. EDA ================= -->
+    <section id="eda" class="panel-section" aria-labelledby="eda-title" hidden>
+      <div class="section-head">
+        <h2 id="eda-title" class="page-title">Exploratory data analysis</h2>
+        <p class="lede">Distributions and activity patterns over the 501,000-user-day feature grid. These charts are computed from the imported daily feature file; nothing here is simulated.</p>
+      </div>
+
+      <div id="eda-empty" class="empty-state empty-state-wide">
+        <p class="empty-title">Feature data not loaded</p>
+        <p>The daily feature dataset (<span class="mono">complete_daily_features.csv</span>, about 501,000 rows) is too large to bundle with this dashboard. Import it to populate every chart on this page. Expected columns: <span class="mono">user, day</span> plus the 12 feature columns listed on the Feature engineering page.</p>
+        <p><a class="btn btn-solid" href="#import">Go to data import</a></p>
+      </div>
+
+      <div id="eda-content" class="is-hidden">
+        <div class="chart-grid-2">
+          <div class="chart-block">
+            <h3 class="chart-title">Distribution of daily logon activity</h3>
+            <div class="canvas-box"><canvas id="hist-logon" height="220" aria-label="Histogram of daily logon event counts"></canvas></div>
+            <p class="figure-note" id="hist-logon-note"></p>
+          </div>
+          <div class="chart-block">
+            <h3 class="chart-title">Distribution of daily email activity</h3>
+            <div class="canvas-box"><canvas id="hist-email" height="220" aria-label="Histogram of daily email event counts"></canvas></div>
+            <p class="figure-note" id="hist-email-note"></p>
+          </div>
+          <div class="chart-block">
+            <h3 class="chart-title">Distribution of daily HTTP activity</h3>
+            <div class="canvas-box"><canvas id="hist-http" height="220" aria-label="Histogram of daily HTTP event counts"></canvas></div>
+            <p class="figure-note" id="hist-http-note"></p>
+          </div>
+          <div class="chart-block">
+            <h3 class="chart-title">Distribution of daily file activity</h3>
+            <div class="canvas-box"><canvas id="hist-file" height="220" aria-label="Histogram of daily file event counts"></canvas></div>
+            <p class="figure-note" id="hist-file-note"></p>
+          </div>
+        </div>
+
+        <div class="chart-grid-2">
+          <div class="chart-block">
+            <h3 class="chart-title">Normal versus after-hours events</h3>
+            <div class="chart-toolbar">
+              <div class="toggle-group" role="group" aria-label="After-hours chart display mode">
+                <button type="button" class="toggle-btn is-on" data-mode="count" data-target="afterhours">Counts</button>
+                <button type="button" class="toggle-btn" data-mode="percent" data-target="afterhours">Percent</button>
+              </div>
+            </div>
+            <div class="canvas-box"><canvas id="afterhours-chart" height="240" aria-label="Grouped bar chart of normal-hours versus after-hours events by activity type"></canvas></div>
+            <p class="figure-note" id="afterhours-note"></p>
+          </div>
+          <div class="chart-block">
+            <h3 class="chart-title">Average activity by day of week</h3>
+            <div class="canvas-box"><canvas id="weekday-chart" height="240" aria-label="Bar chart of average events per user-day by day of week"></canvas></div>
+            <p class="figure-note" id="weekday-note"></p>
+          </div>
+        </div>
+
+        <div class="chart-block">
+          <h3 class="chart-title">Daily activity over time</h3>
+          <div class="canvas-box"><canvas id="timeseries-chart" height="240" aria-label="Line chart of total recorded events per day across all users"></canvas></div>
+          <p class="figure-note" id="timeseries-note"></p>
+        </div>
+
+        <div class="chart-block">
+          <h3 class="chart-title">Feature quartiles</h3>
+          <div class="canvas-box"><canvas id="boxplot-chart" height="360" aria-label="Box plot of the 12 model features on a log1p scale"></canvas></div>
+          <p class="figure-note">Box spans the interquartile range, line marks the median, whiskers reach the 5th and 95th percentiles. The axis uses a clearly labelled log1p scale because email size and HTTP counts span several orders of magnitude; the underlying values are not transformed.</p>
+          <details class="table-details">
+            <summary>View data table</summary>
+            <div class="table-wrap">
+              <table>
+                <caption>Feature quartiles from the imported data</caption>
+                <thead><tr><th scope="col">Feature</th><th scope="col">p5</th><th scope="col">p25</th><th scope="col">Median</th><th scope="col">p75</th><th scope="col">p95</th><th scope="col">Max</th></tr></thead>
+                <tbody id="boxplot-table-body"></tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= E. FEATURE ENGINEERING ================= -->
+    <section id="features" class="panel-section" aria-labelledby="features-title" hidden>
+      <div class="section-head">
+        <h2 id="features-title" class="page-title">Feature engineering</h2>
+        <p class="lede">Event-level records become one row per user per day. For each activity source the pipeline counts total events and after-hours events (before 08:00 or at/after 18:00); email additionally contributes total size and attachment count.</p>
+      </div>
+
+      <h3 class="section-label">From raw events to user-day features</h3>
+      <div class="transform-diagram" aria-label="Diagram: raw event rows are grouped by user and day, after-hours flags are added, sources are merged, and a complete zero-filled grid is produced">
+        <div class="transform-step"><span class="transform-tag">input</span><strong>Raw event rows</strong><span>one row per logon, file open, email, http request…</span></div>
+        <div class="transform-arrow" aria-hidden="true">→</div>
+        <div class="transform-step"><span class="transform-tag">group</span><strong>User × day grouping</strong><span>count events per user per date</span></div>
+        <div class="transform-arrow" aria-hidden="true">→</div>
+        <div class="transform-step"><span class="transform-tag">flag</span><strong>After-hours flag</strong><span>hour &lt; 8 or hour ≥ 18</span></div>
+        <div class="transform-arrow" aria-hidden="true">→</div>
+        <div class="transform-step"><span class="transform-tag">merge</span><strong>Outer merge of sources</strong><span>join logon, device, file, email, http</span></div>
+        <div class="transform-arrow" aria-hidden="true">→</div>
+        <div class="transform-step"><span class="transform-tag">complete</span><strong>Complete grid</strong><span>fill absent user-days with 0</span></div>
+      </div>
+
+      <h3 class="section-label">Baseline model features</h3>
+      <div class="table-wrap">
+        <table id="feature-table">
+          <caption>The 12 features passed to Isolation Forest (notebook 06 model_cols)</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-sortable>Feature</th>
+              <th scope="col">Plain-English meaning</th>
+              <th scope="col">Information type</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row" class="mono">logon_event_count</th><td>Number of logon events the user generated that day</td><td>Volume</td></tr>
+            <tr><th scope="row" class="mono">logon_after_hours</th><td>Logon events outside 08:00–18:00</td><td>Timing</td></tr>
+            <tr><th scope="row" class="mono">device_event_count</th><td>Number of device connect/disconnect events that day</td><td>Volume</td></tr>
+            <tr><th scope="row" class="mono">device_after_hours</th><td>Device events outside 08:00–18:00</td><td>Timing</td></tr>
+            <tr><th scope="row" class="mono">file_event_count</th><td>Number of file operations recorded that day</td><td>Volume</td></tr>
+            <tr><th scope="row" class="mono">file_after_hours</th><td>File operations outside 08:00–18:00</td><td>Timing</td></tr>
+            <tr><th scope="row" class="mono">email_event_count</th><td>Number of emails sent that day</td><td>Volume</td></tr>
+            <tr><th scope="row" class="mono">email_after_hours</th><td>Emails sent outside 08:00–18:00</td><td>Timing</td></tr>
+            <tr><th scope="row" class="mono">email_size</th><td>Total byte size of emails sent that day</td><td>Magnitude</td></tr>
+            <tr><th scope="row" class="mono">email_attachments</th><td>Total number of attachments sent that day</td><td>Magnitude</td></tr>
+            <tr><th scope="row" class="mono">http_event_count</th><td>Number of HTTP requests recorded that day</td><td>Volume</td></tr>
+            <tr><th scope="row" class="mono">http_after_hours</th><td>HTTP requests outside 08:00–18:00</td><td>Timing</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout callout-quiet">
+        <h3 class="callout-title">Feature transformation</h3>
+        <p>Before training, all 12 feature columns were transformed with <span class="mono">log1p(x) = ln(1 + x)</span> (verified in notebook 06: <span class="mono">X = np.log1p(X)</span>). This reduces the influence of extreme values such as very large email sizes. The transform is applied to model input only; stored feature values remain in their original units.</p>
+      </div>
+
+      <h3 class="section-label">Feature-quality considerations</h3>
+      <ul class="plain-list">
+        <li><span class="mono">email_external_email_count</span> is <strong>not used</strong> in the baseline model and should stay out of it until its external-recipient logic is correctly defined and validated.</li>
+        <li><span class="mono">http_unique_pcs</span> and <span class="mono">email_unique_pcs</span> were found to be highly correlated in earlier analysis and should be reviewed before either is included. Neither is in the current baseline.</li>
+        <li>The psychometric personality attributes (OCEAN scores) are <strong>not part of the baseline model</strong>; they were excluded from <span class="mono">model_cols</span>. This dashboard makes no claim that personality data influenced any prediction.</li>
+      </ul>
+    </section>
+
+    <!-- ================= F. MODEL EXPLORER ================= -->
+    <section id="model" class="panel-section" aria-labelledby="model-title" hidden>
+      <div class="section-head">
+        <h2 id="model-title" class="page-title">Model explorer</h2>
+        <p class="lede">Isolation Forest identifies observations that differ from the broader dataset. Observations that are easier to isolate receive stronger anomaly scores.</p>
+      </div>
+
+      <div class="callout">
+        <h3 class="callout-title">How Isolation Forest works, briefly</h3>
+        <p>The model builds random decision trees that split on feature values. Points that end up alone in small branches were easy to isolate; points that share branches with many others were not. An observation's anomaly score summarises how quickly it gets separated from the crowd. This is <strong>unsupervised</strong>: the model never sees the incident labels during training, so labels can only be used afterwards for evaluation.</p>
+      </div>
+
+      <h3 class="section-label">Verified model configuration</h3>
+      <div class="table-wrap">
+        <table id="config-table">
+          <caption>Configuration read from notebook 06</caption>
+          <tbody>
+            <tr><th scope="row">Algorithm</th><td class="mono">Isolation Forest (scikit-learn)</td></tr>
+            <tr><th scope="row">Number of estimators</th><td class="mono">200</td></tr>
+            <tr><th scope="row">Contamination</th><td class="mono">0.01</td></tr>
+            <tr><th scope="row">Random state</th><td class="mono">42</td></tr>
+            <tr><th scope="row">Feature transformation</th><td class="mono">log1p</td></tr>
+            <tr><th scope="row">Training rows</th><td class="mono">501,000 user-days</td></tr>
+            <tr><th scope="row">Score convention</th><td class="mono">anomaly_score = −decision_function(X_log)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figure-note">The notebook code shows <span class="mono">IsolationForest(n_estimators=200, contamination=0.01, random_state=42)</span>. A parallel-processing argument does not appear in the saved notebook, so this dashboard does not display one. Higher anomaly scores mean more anomalous observations.</p>
+
+      <div class="callout callout-warning">
+        <h3 class="callout-title">What contamination means</h3>
+        <p>Contamination (0.01) is the model's <em>assumed</em> anomaly proportion used to place its fitted classification threshold. It is a setting, not a measurement: it does not mean 1% of users are malicious, and it does not reflect the true insider rate in the dataset.</p>
+      </div>
+
+      <h3 class="section-label">Model output summary</h3>
+      <div class="kpi-row kpi-row-3">
+        <article class="kpi">
+          <p class="kpi-label">User-days flagged</p>
+          <p class="kpi-value kpi-rust">5,010</p>
+          <p class="kpi-note">of 501,000 analysed (1.0%)</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi-label">Normal user-days</p>
+          <p class="kpi-value">495,990</p>
+          <p class="kpi-note">99.0% of observations</p>
+        </article>
+        <article class="kpi">
+          <p class="kpi-label">Distinct users flagged</p>
+          <p class="kpi-value kpi-rust">171</p>
+          <p class="kpi-note">flagged on at least one day</p>
+        </article>
+      </div>
+      <p class="figure-note">Verified from notebooks 06 and 07. A "flagged observation" is a potential anomaly for review, not a confirmed attack.</p>
+
+      <div class="chart-grid-2">
+        <div class="chart-block">
+          <h3 class="chart-title">Normal versus flagged user-days</h3>
+          <div class="canvas-box"><canvas id="flagbar-chart" height="220" aria-label="Bar chart comparing 495,990 normal user-days with 5,010 flagged user-days"></canvas></div>
+          <p class="figure-note">The flagged bar is small by design: contamination caps the flagged share at about 1%.</p>
+        </div>
+        <div class="chart-block">
+          <h3 class="chart-title">Anomaly score distribution</h3>
+          <div id="score-empty" class="empty-state">
+            <p class="empty-title">Not available</p>
+            <p>Per-user-day scores live in <span class="mono">isolation_forest_baseline.csv</span> (501,000 rows). Import that file on the Data import page to draw the distribution. <a href="#import">Go to data import</a></p>
+          </div>
+          <div id="score-wrap" class="is-hidden">
+            <div class="canvas-box"><canvas id="score-chart" height="220" aria-label="Histogram of anomaly scores from imported predictions"></canvas></div>
+            <p class="figure-note" id="score-note"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-quiet">
+        <h3 class="callout-title">Reading the score</h3>
+        <p>The score convention here is <span class="mono">anomaly_score = −decision_function(X)</span>, so <strong>higher scores indicate more anomalous observations</strong>. A flag means the observation looked unusual relative to the rest of the dataset. It does not describe intent and does not confirm wrongdoing.</p>
+      </div>
+    </section>
+
+    <!-- ================= G. EVALUATION ================= -->
+    <section id="evaluation" class="panel-section" aria-labelledby="evaluation-title" hidden>
+      <div class="section-head">
+        <h2 id="evaluation-title" class="page-title">Evaluation and confusion matrix</h2>
+        <p class="lede">Model flags are compared with the r4.2 ground truth at two different units of analysis: users and incident windows.</p>
+      </div>
+
+      <h3 class="section-label">Reported metrics</h3>
+      <div class="table-wrap">
+        <table id="eval-table">
+          <caption>Latest reported evaluation, verified against notebook 07 outputs</caption>
+          <thead><tr><th scope="col">Metric</th><th scope="col">Value</th><th scope="col">Definition</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Known insider users</th><td class="mono">70</td><td>Distinct users in the r4.2 ground truth</td></tr>
+            <tr><th scope="row">Known insider users flagged</th><td class="mono">51</td><td>Flagged on at least one user-day</td></tr>
+            <tr><th scope="row">Users flagged overall</th><td class="mono">171</td><td>All users with at least one flagged user-day</td></tr>
+            <tr><th scope="row">User-level recall</th><td class="mono">72.86%</td><td>51 ÷ 70 known insider users</td></tr>
+            <tr><th scope="row">Known incidents</th><td class="mono">70</td><td>Incident records for dataset r4.2</td></tr>
+            <tr><th scope="row">Incidents detected</th><td class="mono">31</td><td>At least one flagged user-day inside the incident window</td></tr>
+            <tr><th scope="row">Incident-window recall</th><td class="mono">44.29%</td><td>31 ÷ 70 known incidents</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="section-label">Two units of analysis</h3>
+      <div class="compare-rows">
+        <div class="compare-row">
+          <span class="compare-tag tag-teal">User level</span>
+          <p><strong>51 of 70 known insider users were flagged at least once (72.86%).</strong> One flagged day anywhere in the dataset counts the whole user as detected. Of the 171 flagged users, 51 are known insiders, so 29.82% of flagged users appear in the ground truth; the rest are unlabelled and may be ordinary variability.</p>
+        </div>
+        <div class="compare-row">
+          <span class="compare-tag tag-rust">Incident level</span>
+          <p><strong>31 of 70 incidents were detected (44.29%).</strong> An incident counts as detected only if the model flagged that user during the labelled incident window. This is the stricter and more operationally meaningful test.</p>
+        </div>
+      </div>
+
+      <div class="callout callout-warning">
+        <h3 class="callout-title">Day-level approximation</h3>
+        <p>Incident windows carry timestamp precision, but predictions exist only at daily resolution, so windows were converted to daily labels: any user-day date falling inside a window counts as an incident day. Day-level evaluation is therefore an approximation of timestamp-level behaviour, and short incidents can be diluted inside a full calendar day of activity.</p>
+      </div>
+
+      <h3 class="section-label">User-level confusion matrix (reported)</h3>
+      <div class="confusion-wrap">
+        <div class="confusion-matrix" role="table" aria-label="User-level confusion matrix: true negatives 810, false positives 120, false negatives 19, true positives 51">
+          <div class="confusion-corner" role="columnheader"></div>
+          <div class="confusion-colhead" role="columnheader">Not flagged</div>
+          <div class="confusion-colhead" role="columnheader">Flagged</div>
+
+          <div class="confusion-rowhead" role="rowheader">Not labelled insider</div>
+          <div class="confusion-cell cell-tn" role="cell"><span class="cell-abbr">TN</span><strong>810</strong><small>not flagged, not labelled</small></div>
+          <div class="confusion-cell cell-fp" role="cell"><span class="cell-abbr">FP</span><strong>120</strong><small>flagged, not labelled</small></div>
+
+          <div class="confusion-rowhead" role="rowheader">Known insider</div>
+          <div class="confusion-cell cell-fn" role="cell"><span class="cell-abbr">FN</span><strong>19</strong><small>known insider, never flagged</small></div>
+          <div class="confusion-cell cell-tp" role="cell"><span class="cell-abbr">TP</span><strong>51</strong><small>known insider, flagged</small></div>
+        </div>
+        <div class="confusion-defs">
+          <h4 class="mini-title">Definitions (user level)</h4>
+          <dl>
+            <dt>TP</dt><dd>a known insider user flagged at least once</dd>
+            <dt>FP</dt><dd>a user flagged at least once who is not in the ground truth</dd>
+            <dt>FN</dt><dd>a known insider user never flagged</dd>
+            <dt>TN</dt><dd>a user never flagged and not in the ground truth</dd>
+          </dl>
+          <p class="figure-note">Verified from notebook 07. Precision is not reported at user level here because the ground truth only labels 70 users; treating every unlabelled user as truly benign would make "precision" misleading. The 51 ÷ 171 ratio (29.82%) is shown on the evaluation page as a ground-truth share, not as precision.</p>
+        </div>
+      </div>
+
+      <h3 class="section-label">Daily user-day confusion matrix</h3>
+      <div id="daily-cm-empty" class="empty-state empty-state-wide">
+        <p class="empty-title">Requires imported predictions</p>
+        <p>The day-level confusion matrix matches each flagged user-day against incident-window labels. It is computed in the browser from an imported <span class="mono">isolation_forest_baseline.csv</span>. The r4.2 ground truth is already loaded; only predictions are missing. <a href="#import">Go to data import</a></p>
+      </div>
+      <div id="daily-cm-wrap" class="is-hidden">
+        <div class="confusion-wrap">
+          <div class="confusion-matrix" id="daily-cm" role="table" aria-label="Daily user-day confusion matrix computed from imported predictions">
+            <div class="confusion-corner" role="columnheader"></div>
+            <div class="confusion-colhead" role="columnheader">Not flagged</div>
+            <div class="confusion-colhead" role="columnheader">Flagged</div>
+            <div class="confusion-rowhead" role="rowheader">Outside incident window</div>
+            <div class="confusion-cell cell-tn" role="cell"><span class="cell-abbr">TN</span><strong id="daily-tn">—</strong><small>unflagged, outside window</small></div>
+            <div class="confusion-cell cell-fp" role="cell"><span class="cell-abbr">FP</span><strong id="daily-fp">—</strong><small>flagged, outside window</small></div>
+            <div class="confusion-rowhead" role="rowheader">Inside incident window</div>
+            <div class="confusion-cell cell-fn" role="cell"><span class="cell-abbr">FN</span><strong id="daily-fn">—</strong><small>unflagged, inside window</small></div>
+            <div class="confusion-cell cell-tp" role="cell"><span class="cell-abbr">TP</span><strong id="daily-tp">—</strong><small>flagged, inside window</small></div>
+          </div>
+          <div class="confusion-defs">
+            <h4 class="mini-title">Derived metrics (daily unit)</h4>
+            <dl>
+              <dt>Precision</dt><dd class="mono" id="daily-precision">—</dd>
+              <dt>Recall</dt><dd class="mono" id="daily-recall">—</dd>
+              <dt>Specificity</dt><dd class="mono" id="daily-specificity">—</dd>
+              <dt>F1-score</dt><dd class="mono" id="daily-f1">—</dd>
+              <dt>Accuracy</dt><dd class="mono" id="daily-accuracy">—</dd>
+            </dl>
+            <p class="figure-note">Computed from the imported file at the file's own is_anomaly classification. Day-level evaluation approximates timestamp-level incident periods.</p>
+          </div>
+        </div>
+        <details class="table-details">
+          <summary>View metric formulas</summary>
+          <ul class="plain-list">
+            <li>Precision = TP ÷ (TP + FP) — of flagged user-days, the share inside a labelled window</li>
+            <li>Recall = TP ÷ (TP + FN) — of incident-window user-days, the share flagged</li>
+            <li>Specificity = TN ÷ (TN + FP) — of ordinary user-days, the share left unflagged</li>
+            <li>F1 = 2 × precision × recall ÷ (precision + recall)</li>
+            <li>Accuracy = (TP + TN) ÷ all user-days</li>
+          </ul>
+        </details>
+      </div>
+
+      <h3 class="section-label">Detection by scenario</h3>
+      <div class="chart-block">
+        <div class="chart-toolbar">
+          <div class="toggle-group" role="group" aria-label="Scenario chart display mode">
+            <button type="button" class="toggle-btn is-on" data-mode="percent" data-target="scenperf">Percent</button>
+            <button type="button" class="toggle-btn" data-mode="count" data-target="scenperf">Counts</button>
+          </div>
+        </div>
+        <div class="canvas-box"><canvas id="scenperf-chart" height="240" aria-label="Bar chart of incident detection by scenario: scenario 1 is 13 of 30, scenario 2 is 8 of 30, scenario 3 is 10 of 10"></canvas></div>
+        <p class="figure-note" id="scenperf-note">Latest reported figures, verified from notebook 07: Scenario 1 detected 13 of 30 (43.33%); Scenario 2 detected 8 of 30 (26.67%); Scenario 3 detected 10 of 10 (100%). Detection differs sharply by scenario, which is the most important qualification on the headline recall number.</p>
+      </div>
+
+      <h3 class="section-label">Incident detection status</h3>
+      <div class="chart-block">
+        <div class="chart-toolbar">
+          <label class="field-inline">Scenario
+            <select id="missed-scenario-filter" aria-label="Filter incidents by scenario">
+              <option value="all">All scenarios</option>
+              <option value="1">Scenario 1</option>
+              <option value="2">Scenario 2</option>
+              <option value="3">Scenario 3</option>
+            </select>
+          </label>
+          <label class="field-inline">Status
+            <select id="missed-status-filter" aria-label="Filter incidents by detection status">
+              <option value="all">All</option>
+              <option value="detected">Detected</option>
+              <option value="missed">Missed</option>
+            </select>
+          </label>
+          <span class="toolbar-note" id="missed-count">Not available</span>
+        </div>
+        <div id="missed-empty" class="empty-state">
+          <p class="empty-title">Not available</p>
+          <p>Per-incident detection status is not recorded in the notebooks; only aggregate counts are. Import <span class="mono">isolation_forest_baseline.csv</span> to compute detection status for each incident from its window. No incident identities are invented. <a href="#import">Go to data import</a></p>
+        </div>
+        <div id="missed-wrap" class="is-hidden">
+          <div class="table-wrap table-scroll-limited">
+            <table id="missed-table">
+              <caption>Per-incident detection status computed from imported predictions</caption>
+              <thead>
+                <tr>
+                  <th scope="col" data-sortable>User</th>
+                  <th scope="col" data-sortable>Scenario</th>
+                  <th scope="col" data-sortable>Window start</th>
+                  <th scope="col" data-sortable>Window end</th>
+                  <th scope="col" data-sortable>Days in window</th>
+                  <th scope="col" data-sortable>Flagged days</th>
+                  <th scope="col" data-sortable>Status</th>
+                </tr>
+              </thead>
+              <tbody id="missed-body"></tbody>
+            </table>
+          </div>
+          <p class="figure-note">Detection status is recomputed in your browser from the imported prediction file and the loaded ground truth. The original files are not modified.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= H. THRESHOLD ANALYSIS ================= -->
+    <section id="threshold" class="panel-section" aria-labelledby="threshold-title" hidden>
+      <div class="section-head">
+        <h2 id="threshold-title" class="page-title">Threshold analysis</h2>
+        <p class="lede">Different score thresholds change how many alerts are raised and what share of labelled incident days are detected. Flagging more records can catch more incident days, but it also increases investigation workload.</p>
+      </div>
+
+      <h3 class="section-label">Reported threshold comparison</h3>
+      <div class="table-wrap">
+        <table id="threshold-table">
+          <caption>Percentile thresholds on the anomaly score (notebook 08 output)</caption>
+          <thead>
+            <tr>
+              <th scope="col" data-sortable>Score percentile</th>
+              <th scope="col" data-sortable>Threshold</th>
+              <th scope="col" data-sortable>User-days flagged</th>
+              <th scope="col" data-sortable>Alert rate</th>
+              <th scope="col" data-sortable>Incident-day recall</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">99th</th><td class="mono">0.0000</td><td class="mono">5,010</td><td class="mono">1%</td><td class="mono">4.44%</td></tr>
+            <tr><th scope="row">98th</th><td class="mono">−0.0530</td><td class="mono">10,020</td><td class="mono">2%</td><td class="mono">9.51%</td></tr>
+            <tr><th scope="row">95th</th><td class="mono">−0.1043</td><td class="mono">25,050</td><td class="mono">5%</td><td class="mono">19.29%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="figure-note">These rows are verified notebook 08 outputs. Incident-day recall here means: of the 1,892 user-days that fall inside known incident windows, the share that would be flagged at that threshold. It is not the same as incident-window recall on the evaluation page, which counts whole incidents.</p>
+
+      <div class="chart-block">
+        <h3 class="chart-title">Alert volume versus incident-day recall</h3>
+        <div class="canvas-box"><canvas id="threshold-chart" height="260" aria-label="Line chart showing incident-day recall rising from 4.44 percent at a 1 percent alert rate to 19.29 percent at a 5 percent alert rate"></canvas></div>
+        <p class="figure-note">Three verified points from notebook 08. More alerts buy more incident-day coverage at a diminishing rate; none of these settings approaches full incident-day coverage.</p>
+      </div>
+
+      <h3 class="section-label">Interactive threshold selector</h3>
+      <div id="threshold-interactive-empty" class="empty-state empty-state-wide">
+        <p class="empty-title">Requires imported predictions</p>
+        <p>Selecting a percentile needs the full score distribution. Import <span class="mono">isolation_forest_baseline.csv</span> to enable the selector; it will recompute flagged counts and incident-day recall in your browser. <a href="#import">Go to data import</a></p>
+      </div>
+      <div id="threshold-interactive-wrap" class="is-hidden">
+        <div class="threshold-control">
+          <label for="threshold-slider" class="threshold-label">Score percentile</label>
+          <input type="range" id="threshold-slider" min="90" max="99.9" step="0.1" value="99" aria-describedby="threshold-slider-help">
+          <output id="threshold-slider-value" class="mono" for="threshold-slider">99.0</output>
+          <p id="threshold-slider-help" class="figure-note">Explore alert rates between the 90th and 99.9th percentile of anomaly scores.</p>
+        </div>
+        <div class="kpi-row kpi-row-4">
+          <article class="kpi"><p class="kpi-label">Score threshold</p><p class="kpi-value kpi-value-sm mono" id="ithresh-value">—</p><p class="kpi-note">flag score ≥ threshold</p></article>
+          <article class="kpi"><p class="kpi-label">User-days flagged</p><p class="kpi-value kpi-value-sm mono" id="ithresh-flagged">—</p><p class="kpi-note">at this threshold</p></article>
+          <article class="kpi"><p class="kpi-label">Alert rate</p><p class="kpi-value kpi-value-sm mono" id="ithresh-rate">—</p><p class="kpi-note">share of all user-days</p></article>
+          <article class="kpi"><p class="kpi-label">Incident-day recall</p><p class="kpi-value kpi-value-sm kpi-rust mono" id="ithresh-recall">—</p><p class="kpi-note">share of incident-window days flagged</p></article>
+        </div>
+        <p class="figure-note">This selector is exploratory. It does not change the model's own classification (the is_anomaly column in the imported file) and it does not retrain anything. The model's fitted threshold remains the contamination-based one.</p>
+      </div>
+
+      <div class="callout callout-quiet">
+        <h3 class="callout-title">The trade-off</h3>
+        <p>At the 99th percentile the model raises 5,010 alerts and catches 4.44% of incident-window days. At the 95th percentile it raises 25,050 alerts and catches 19.29%. Five times the workload buys roughly four times the incident-day coverage. Choosing a threshold is an operational decision about how much review capacity exists, not a property of the model.</p>
+      </div>
+    </section>
+
+    <!-- ================= I. LIMITATIONS ================= -->
+    <section id="limitations" class="panel-section" aria-labelledby="limitations-title" hidden>
+      <div class="section-head">
+        <h2 id="limitations-title" class="page-title">Limitations and future work</h2>
+        <p class="lede">What these results do and do not prove.</p>
+      </div>
+
+      <h3 class="section-label">Limitations</h3>
+      <ul class="plain-list plain-list-strong">
+        <li>The model flags unusual behaviour, not proven malicious intent. Nothing in the pipeline establishes motive.</li>
+        <li>Detection performance differs substantially by incident scenario: 43.33% for Scenario 1, 26.67% for Scenario 2, and 100% for Scenario 3. A single headline recall number hides this spread.</li>
+        <li>A user can be flagged outside the actual incident window. User-level recall (72.86%) credits such flags; incident-window recall (44.29%) does not.</li>
+        <li>Daily labels approximate timestamp-based incident periods. Day-level confusion-matrix cells inherit that approximation.</li>
+        <li>The model was trained on the full period, which includes the incident windows later used for evaluation. This is not a fully independent, deployment-style evaluation, and it flatters the model: it saw the incident days' feature values while fitting.</li>
+        <li>Zero-filled feature rows require careful interpretation. A zero means no recorded event, not verified inactivity.</li>
+        <li>Feature definitions and correlations need continued review, including the two known issues on the Feature engineering page.</li>
+        <li>The ground truth only labels 70 users. All other 930 users are treated as unlabelled, not verified benign, so false-positive counts are upper bounds.</li>
+      </ul>
+
+      <h3 class="section-label">Future work</h3>
+      <ul class="plain-list">
+        <li>Improve behavioural feature definitions, including validated external-recipient logic for email.</li>
+        <li>Investigate why Scenario 2 incidents were frequently missed: the long windows and subtle single-source behaviour of that scenario deserve a dedicated analysis.</li>
+        <li>Evaluate thresholds using a defined validation procedure rather than choosing a percentile by inspection.</li>
+        <li>Train on a background period and evaluate on a later period, so the evaluation reflects deployment conditions.</li>
+        <li>Compare performance against a clearly documented baseline, such as random flagging at the same alert rate or a simple per-user z-score rule.</li>
+      </ul>
+      <p class="figure-note">These are proposed directions. None of them has been carried out in this project.</p>
+    </section>
+
+    <!-- ================= DATA IMPORT ================= -->
+    <section id="import" class="panel-section" aria-labelledby="import-title" hidden>
+      <div class="section-head">
+        <h2 id="import-title" class="page-title">Data import</h2>
+        <p class="lede">Files are read in your browser's memory only. Nothing is uploaded, nothing is stored, and your original CSV files are never modified.</p>
+      </div>
+
+      <div class="import-grid">
+        <article class="import-card">
+          <h3 class="import-title">Predictions</h3>
+          <p class="import-desc">Model output per user-day. Expected columns: <span class="mono">user, day, anomaly_score, is_anomaly</span>.</p>
+          <label class="file-label">
+            <span>Choose CSV file</span>
+            <input type="file" id="import-predictions" accept=".csv,text/csv" aria-describedby="status-predictions">
+          </label>
+          <p class="import-status" id="status-predictions" role="status">No file loaded. Suggested source: <span class="mono">data/processed/isolation_forest_baseline.csv</span></p>
+        </article>
+
+        <article class="import-card">
+          <h3 class="import-title">Daily features</h3>
+          <p class="import-desc">Feature grid for exploratory analysis. Expected columns: <span class="mono">user, day</span> plus the 12 feature columns.</p>
+          <label class="file-label">
+            <span>Choose CSV file</span>
+            <input type="file" id="import-features" accept=".csv,text/csv" aria-describedby="status-features">
+          </label>
+          <p class="import-status" id="status-features" role="status">No file loaded. Suggested source: <span class="mono">data/processed/complete_daily_features.csv</span></p>
+        </article>
+
+        <article class="import-card">
+          <h3 class="import-title">Ground-truth incidents</h3>
+          <p class="import-desc">Incident records. Expected columns: <span class="mono">dataset, scenario, details, user, start, end</span>. Only rows whose dataset contains 4.2 are used.</p>
+          <label class="file-label">
+            <span>Choose CSV file</span>
+            <input type="file" id="import-groundtruth" accept=".csv,text/csv" aria-describedby="status-groundtruth">
+          </label>
+          <p class="import-status" id="status-groundtruth" role="status">Embedded r4.2 register loaded (70 incidents from the project's answers file).</p>
+        </article>
+
+        <article class="import-card">
+          <h3 class="import-title">Cleaning / audit summary</h3>
+          <p class="import-desc">Optional audit data. Accepted columns (case-insensitive): <span class="mono">file</span> plus <span class="mono">missing_values</span> and/or <span class="mono">duplicate_rows</span> (optionally <span class="mono">original_rows, remaining_rows</span>).</p>
+          <label class="file-label">
+            <span>Choose CSV file</span>
+            <input type="file" id="import-audit" accept=".csv,text/csv" aria-describedby="status-audit">
+          </label>
+          <p class="import-status" id="status-audit" role="status">No file loaded. Provide a CSV with file, missing_values, duplicate_rows columns.</p>
+        </article>
+      </div>
+
+      <div class="callout callout-quiet">
+        <h3 class="callout-title">What gets recomputed</h3>
+        <ul class="plain-list">
+          <li><strong>Predictions only:</strong> score distribution, flagged counts, threshold selector, exploratory chart of normal vs flagged.</li>
+          <li><strong>Predictions + ground truth:</strong> everything above, plus the daily confusion matrix, derived metrics, incident detection status per incident, and scenario-level recomputation.</li>
+          <li><strong>Daily features:</strong> every chart on the Exploratory data analysis page.</li>
+          <li><strong>Audit summary:</strong> the missing-values and duplicates chart on the Data cleaning page.</li>
+        </ul>
+        <p>Partial imports update only the sections that can be reliably computed from the supplied file. Everything else keeps its reported value or its "Not available" state; nothing is filled with guessed values.</p>
+      </div>
+
+      <div class="callout callout-warning">
+        <h3 class="callout-title">Size note</h3>
+        <p>The raw HTTP log is about 13.9 GB and must not be imported here; browsers cannot hold it. Use the cleaned feature dataset or notebook-generated summaries instead. Very large prediction files (501,000 rows) may take several seconds to parse.</p>
+      </div>
+
+      <p><button type="button" class="btn btn-rust" id="reset-data-btn-2">Reset imported data</button> <span class="figure-note">This clears every imported file from memory and returns the dashboard to its reported-figure state. It cannot be undone.</span></p>
+    </section>
+
+    <footer class="page-foot">
+      <p>Insider Threat Detection Using Isolation Forest · academic project</p>
+      <p>Source: CMU CERT Insider Threat Dataset r4.2 · figures verified against saved notebook outputs · all computation local to this browser</p>
+    </footer>
+  </main>
+</div>
+
+<div id="chart-tooltip" class="chart-tooltip" role="tooltip" aria-hidden="true"></div>
+<script src="app.js"></script>
+</body>
+</html>
