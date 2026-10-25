@@ -1,0 +1,6 @@
+.venv
+notebooks.zip
+notebooks/*
+!/notebooks/
+dashboard/*
+!/dashboard/
